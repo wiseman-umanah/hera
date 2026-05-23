@@ -105,8 +105,6 @@ export default function App() {
   const downloadTimer     = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingReceiptMsg = useRef('')
   
-  console.log('API_URL:', API_URL)
-console.log('ENV:', import.meta.env.VITE_API_URL)
 
   useEffect(() => {
     messagesEnd.current?.scrollIntoView({ behavior: 'smooth' })
@@ -214,7 +212,8 @@ console.log('ENV:', import.meta.env.VITE_API_URL)
 	if (API_URL) {
 	// production — point directly to Railway
 	const proto = API_URL.startsWith('https') ? 'wss' : 'ws'
-	wsUrl = `${proto}://${API_URL.replace(/^https?:\/\//, '')}/ws`
+	const base = API_URL.replace(/^https?:\/\//, '').replace(/\/$/, '')
+	wsUrl = `${proto}://${base}/ws`
 	} else {
 	// local dev — use relative URL, Vite proxy handles it
 	const proto = location.protocol === 'https:' ? 'wss' : 'ws'
