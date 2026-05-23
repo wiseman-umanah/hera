@@ -51,14 +51,6 @@ async def get_balance(account_id: str):
         return JSONResponse({"error": str(e)}, status_code=502)
 
 
-@app.get("/api/config")
-async def get_config():
-    """Public config the frontend needs at startup."""
-    return {
-        "shop_account_id": settings.SHOP_ACCOUNT_ID,
-        "wc_project_id": settings.WALLETCONNECT_PROJECT_ID,
-    }
-
 
 def extract_tx_id(text: str) -> str | None:
     m = TX_ID_RE.search(text)

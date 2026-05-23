@@ -168,8 +168,7 @@ export default function App() {
 
     let projectId = ''
     try {
-      const cfg = await fetch(`${API_URL}/api/config`).then(r => r.json())
-      projectId = cfg.wc_project_id ?? ''
+      projectId = import.meta.env.WALLETCONNECT_PROJECT_ID ?? ''
     } catch { /* ignore */ }
 
     if (!projectId) {
