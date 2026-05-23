@@ -168,7 +168,7 @@ export default function App() {
 
     let projectId = ''
     try {
-      projectId = import.meta.env.WALLETCONNECT_PROJECT_ID ?? ''
+      projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID ?? ''
     } catch { /* ignore */ }
 
     if (!projectId) {
