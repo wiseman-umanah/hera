@@ -10,4 +10,5 @@ wheels/
 .venv
 .env
 .claude
-
+hbar-coffee-shop-prd.docx
+coffee-prd.md

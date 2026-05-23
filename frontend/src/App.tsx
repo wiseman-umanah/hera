@@ -6,6 +6,30 @@ import Confetti from './Confetti'
 import { playSuccessSound, playDeclineSound } from './sounds'
 import './App.css'
 
+const IS_MOBILE = /android|iphone|ipad|ipod/i.test(
+  typeof navigator !== 'undefined' ? navigator.userAgent : ''
+)
+
+// On mobile the SDK uses anchor.click() with target="_blank" which is blocked
+// by browsers in async context. Intercept it and redirect via window.location.href instead.
+function interceptMobileDeepLink(): () => void {
+  const handler = (e: MouseEvent) => {
+    const el = e.target as HTMLElement
+    if (el.tagName !== 'A') return
+    const href = el.getAttribute('href') ?? ''
+    if (!href.includes('link.hashpack.app') && !href.includes('hashpack://')) return
+    e.preventDefault()
+    e.stopPropagation()
+    // Store return URL so we can resume on page reload (Android case)
+    sessionStorage.setItem('hbar_return_from_wallet', '1')
+    window.location.href = href
+    cleanup()
+  }
+  document.addEventListener('click', handler, true)
+  const cleanup = () => document.removeEventListener('click', handler, true)
+  return cleanup
+}
+
 // Smart HashPack download routing by device
 function getHashPackDownload(): { url: string; label: string; hint: string } {
   const ua = navigator.userAgent
@@ -83,6 +107,40 @@ export default function App() {
     messagesEnd.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, typing])
 
+  // On mobile: detect return from HashPack and restore the WC session
+  useEffect(() => {
+    if (!IS_MOBILE) return
+    if (!sessionStorage.getItem('hbar_return_from_wallet')) return
+    sessionStorage.removeItem('hbar_return_from_wallet')
+
+    const pendingProjectId = sessionStorage.getItem('hbar_pending_project_id')
+    if (!pendingProjectId) return
+    sessionStorage.removeItem('hbar_pending_project_id')
+
+    setConnecting(true)
+    const metadata = {
+      name: 'HBAR Coffee Shop', description: 'AI barista — pay in HBAR',
+      url: location.origin, icons: [] as string[],
+    }
+    ;(async () => {
+      try {
+        const s = getSDK()
+        const result = await s.initAccount(pendingProjectId, metadata, LedgerId.TESTNET)
+        if (result?.accountId) {
+          clearDownloadTimer()
+          openWs(result.accountId)
+        } else {
+          setError('Could not restore wallet session — please try connecting again.')
+          setConnecting(false)
+        }
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : String(e))
+        setConnecting(false)
+      }
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const updateBalance = useCallback((hbar: number) => {
     setBalance(hbar)
     setFlash(true)
@@ -117,19 +175,34 @@ export default function App() {
       setConnecting(false)
       return
     }
+    const metadata = {
+      name: 'HBAR Coffee Shop', description: 'AI barista — pay in HBAR',
+      url: location.origin, icons: [] as string[],
+    }
+
+    // On mobile: install the deep-link interceptor BEFORE the SDK fires anchor.click()
+    // so we can replace it with window.location.href (never blocked by browsers).
+    let removeInterceptor: (() => void) | null = null
+    if (IS_MOBILE) {
+      sessionStorage.setItem('hbar_pending_project_id', projectId)
+      removeInterceptor = interceptMobileDeepLink()
+    }
+
     try {
       const s = getSDK()
-      const result = await s.connectWallet(
-        projectId,
-        { name: 'HBAR Coffee Shop', description: 'AI barista — pay in HBAR', url: location.origin, icons: [] },
-        LedgerId.TESTNET,
-      )
+      const result = await s.connectWallet(projectId, metadata, LedgerId.TESTNET)
+      // Reaches here on iOS if universal link kept the page alive
+      removeInterceptor?.()
       clearDownloadTimer()
       openWs(result.accountId)
     } catch (e: unknown) {
+      removeInterceptor?.()
       clearDownloadTimer()
-      setError(e instanceof Error ? e.message : String(e))
-      setConnecting(false)
+      // On Android the page navigated away — the error is expected; return flow handles it
+      if (!IS_MOBILE) {
+        setError(e instanceof Error ? e.message : String(e))
+        setConnecting(false)
+      }
     }
   }, [clearDownloadTimer])
 
