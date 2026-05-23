@@ -105,6 +105,8 @@ export default function App() {
   const downloadTimer     = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingReceiptMsg = useRef('')
   
+  console.log('API_URL:', API_URL)
+console.log('ENV:', import.meta.env.VITE_API_URL)
 
   useEffect(() => {
     messagesEnd.current?.scrollIntoView({ behavior: 'smooth' })
