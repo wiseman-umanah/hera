@@ -6,6 +6,26 @@ import Confetti from './Confetti'
 import { playSuccessSound, playDeclineSound } from './sounds'
 import './App.css'
 
+// Smart HashPack download routing by device
+function getHashPackDownload(): { url: string; label: string; hint: string } {
+  const ua = navigator.userAgent
+  if (/iPhone|iPad|iPod/i.test(ua)) return {
+    url: 'https://apps.apple.com/ng/app/hashpack/id6444389849',
+    label: 'Get HashPack on App Store',
+    hint: 'iPhone / iPad detected',
+  }
+  if (/Android/i.test(ua)) return {
+    url: 'https://play.google.com/store/apps/details?id=app.hashpack.wallet.twa',
+    label: 'Get HashPack on Google Play',
+    hint: 'Android detected',
+  }
+  return {
+    url: 'https://chrome.google.com/webstore/detail/hashpack/gjagmgiddbbciopjhllkdnddhcglnemk',
+    label: 'Install HashPack Extension',
+    hint: 'Desktop browser detected',
+  }
+}
+
 type MsgRole = 'hera' | 'user' | 'system' | 'receipt'
 
 interface Msg {
@@ -51,11 +71,12 @@ export default function App() {
   const [typing, setTyping]         = useState(false)
   const [error, setError]           = useState('')
   const [connecting, setConnecting] = useState(false)
-  const [confetti, setConfetti]     = useState(false)
+  const [confetti, setConfetti]         = useState(false)
+  const [showDownloadHint, setDownload] = useState(false)
 
   const ws                = useRef<WebSocket | null>(null)
   const messagesEnd       = useRef<HTMLDivElement>(null)
-  // Holds agent's receipt message until the receipt event arrives
+  const downloadTimer     = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingReceiptMsg = useRef('')
 
   useEffect(() => {
@@ -71,9 +92,19 @@ export default function App() {
   const addMsg = useCallback((role: MsgRole, text: string, extra?: { txId?: string; url?: string }) =>
     setMessages(p => [...p, { id: crypto.randomUUID(), role, text, ...extra }]), [])
 
+  const clearDownloadTimer = useCallback(() => {
+    if (downloadTimer.current) { clearTimeout(downloadTimer.current); downloadTimer.current = null }
+    setDownload(false)
+  }, [])
+
   const handleConnect = useCallback(async () => {
     setError('')
+    setDownload(false)
     setConnecting(true)
+
+    // After 15 s with no wallet response, surface the download prompt
+    downloadTimer.current = setTimeout(() => setDownload(true), 15_000)
+
     let projectId = ''
     try {
       const cfg = await fetch('/api/config').then(r => r.json())
@@ -81,6 +112,7 @@ export default function App() {
     } catch { /* ignore */ }
 
     if (!projectId) {
+      clearDownloadTimer()
       setError('WALLETCONNECT_PROJECT_ID not set in .env — free at cloud.walletconnect.com')
       setConnecting(false)
       return
@@ -92,12 +124,14 @@ export default function App() {
         { name: 'HBAR Coffee Shop', description: 'AI barista — pay in HBAR', url: location.origin, icons: [] },
         LedgerId.TESTNET,
       )
+      clearDownloadTimer()
       openWs(result.accountId)
     } catch (e: unknown) {
+      clearDownloadTimer()
       setError(e instanceof Error ? e.message : String(e))
       setConnecting(false)
     }
-  }, [])
+  }, [clearDownloadTimer])
 
   const openWs = useCallback((acctId: string) => {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws'
@@ -206,14 +240,38 @@ export default function App() {
           <div className="brand-sub">Powered by Hedera</div>
         </div>
         <div className="divider"><span/><span/><span/></div>
-        {connecting
-          ? <div className="spinner-wrap"><div className="spinner"/><p>Opening wallet...</p></div>
-          : <>
-              <p className="connect-hint">Connect your Hedera wallet to order<br/>real coffee paid on-chain with HBAR.</p>
-              <button className="connect-btn" onClick={handleConnect}>Connect Wallet</button>
-              <p className="connect-sub">Works with HashPack · Testnet only</p>
-            </>
-        }
+        {connecting ? (
+          <div className="spinner-wrap">
+            <div className="spinner"/>
+            <p>Opening wallet...</p>
+            {showDownloadHint && (() => {
+              const dl = getHashPackDownload()
+              return (
+                <div className="download-hint">
+                  <p className="download-hint-text">
+                    No wallet popup? You may not have HashPack installed.
+                  </p>
+                  <a
+                    href={dl.url}
+                    target="_blank"
+                    rel="noopener"
+                    className="download-btn"
+                    onClick={clearDownloadTimer}
+                  >
+                    {dl.label}
+                  </a>
+                  <p className="download-device">{dl.hint}</p>
+                </div>
+              )
+            })()}
+          </div>
+        ) : (
+          <>
+            <p className="connect-hint">Connect your Hedera wallet to order<br/>real coffee paid on-chain with HBAR.</p>
+            <button className="connect-btn" onClick={handleConnect}>Connect Wallet</button>
+            <p className="connect-sub">Works with HashPack · Testnet only</p>
+          </>
+        )}
         {error && <p className="connect-error">{error}</p>}
       </div>
     </div>
