@@ -1,6 +1,7 @@
 import httpx
 from langchain_core.tools import tool, StructuredTool
 from config.menu import MENU
+from config import settings
 
 TINYBARS_PER_HBAR = 100_000_000
 PORTAL_URL = "https://portal.hedera.com/dashboard"
@@ -50,10 +51,8 @@ def check_balance(account_id: str, required_hbar: float) -> str:
         required_hbar: The amount of HBAR needed
     """
     try:
-        resp = httpx.get(
-            f"https://testnet.mirrornode.hedera.com/api/v1/accounts/{account_id}",
-            timeout=8,
-        )
+        url = f"{settings.MIRROR_NODE_URL}/api/v1/accounts/{account_id}"
+        resp = httpx.get(url, timeout=8)
         resp.raise_for_status()
         tinybars = resp.json()["balance"]["balance"]
         balance = tinybars / TINYBARS_PER_HBAR

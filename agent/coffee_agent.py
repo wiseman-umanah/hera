@@ -4,6 +4,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from hedera_agent_kit.langchain.toolkit import HederaLangchainToolkit
 from hedera_agent_kit.plugins import core_account_query_plugin
 from hedera_agent_kit.shared.configuration import Configuration, Context, AgentMode
+from hiero_sdk_python import Client, Network
 
 from agent.tools import get_menu, calculate_order, check_balance, make_transfer_tool
 from agent.prompts import SYSTEM_PROMPT
@@ -16,9 +17,14 @@ def build_agent(user_account_id: str, pay_session):
     pay_session: PaySession — routes payment requests to the user's wallet.
     No private key needed; the wallet signs everything.
     """
-    # Use a lightweight client for the agent kit's query tools (no operator needed)
-    from hiero_sdk_python import Client, Network
-    client = Client(Network(network="testnet"))
+    # No private key needed; the wallet signs everything.
+    if settings.HEDERA_NETWORK == "localnet" and settings.HNODE_URL:
+        # For localnet, we use a custom network layout
+        network_dict = {"127.0.0.1:50211": "0.0.3"}
+        client = Client(network_dict)
+        client.set_mirror_network([settings.MIRROR_NODE_URL.replace("http://", "").replace("https://", "")])
+    else:
+        client = Client(Network(network=settings.HEDERA_NETWORK))
 
     hedera_toolkit = HederaLangchainToolkit(
         client=client,

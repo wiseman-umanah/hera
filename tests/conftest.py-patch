@@ -1,0 +1,15 @@
+@pytest.fixture(scope="session")
+def hedera_client():
+    """Provides a Hedera client (real or primitive)."""
+    from hiero_sdk_python import Client
+    if has_local_node():
+        network_dict = {"127.0.0.1:50211": "0.0.3"}
+        client = Client(network_dict)
+        client.set_mirror_network(["127.0.0.1:5600"])
+        return client
+    
+    # Primitive mode client
+    network_dict = {"127.0.0.1:5551": "0.0.3"}
+    client = Client(network_dict)
+    client.set_mirror_network(["127.0.0.1:5551"])
+    return client

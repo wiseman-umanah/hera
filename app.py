@@ -3,12 +3,10 @@ import re
 import uuid
 import httpx
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from config import settings
 
 app = FastAPI(title="HBAR Coffee Shop")
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 TINYBARS_PER_HBAR = 100_000_000
 MIRROR_NODE = "https://testnet.mirrornode.hedera.com/api/v1"
@@ -23,7 +21,7 @@ async def startup():
 
 @app.get("/")
 async def index():
-    return FileResponse("static/index.html")
+    return {"status": "ok", "message": "HBAR Coffee Shop API is running"}
 
 
 @app.get("/api/balance/{account_id}")
