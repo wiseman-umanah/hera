@@ -5,6 +5,8 @@ import { TransferTransaction, AccountId, Hbar, LedgerId } from '@hashgraph/sdk'
 import Confetti from './Confetti'
 import { playSuccessSound, playDeclineSound } from './sounds'
 import './App.css'
+import { API_URL } from './config'
+
 
 const IS_MOBILE = /android|iphone|ipad|ipod/i.test(
   typeof navigator !== 'undefined' ? navigator.userAgent : ''
@@ -98,10 +100,11 @@ export default function App() {
   const [confetti, setConfetti]         = useState(false)
   const [showDownloadHint, setDownload] = useState(false)
 
-  const ws                = useRef<WebSocket | null>(null)
+  const ws = useRef<WebSocket | null>(null)
   const messagesEnd       = useRef<HTMLDivElement>(null)
   const downloadTimer     = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingReceiptMsg = useRef('')
+  
 
   useEffect(() => {
     messagesEnd.current?.scrollIntoView({ behavior: 'smooth' })
@@ -165,13 +168,12 @@ export default function App() {
 
     let projectId = ''
     try {
-      const cfg = await fetch('/api/config').then(r => r.json())
+      const cfg = await fetch(`${API_URL}/api/config`).then(r => r.json())
       projectId = cfg.wc_project_id ?? ''
     } catch { /* ignore */ }
 
     if (!projectId) {
       clearDownloadTimer()
-      setError('WALLETCONNECT_PROJECT_ID not set in .env — free at cloud.walletconnect.com')
       setConnecting(false)
       return
     }
@@ -239,7 +241,7 @@ export default function App() {
         // Balance refresh after 5 s (mirror node needs time to index)
         setTimeout(async () => {
           try {
-            const r = await fetch(`/api/balance/${acctId}`)
+            const r = await fetch(`${API_URL}/api/balance/${acctId}`)
             const d = await r.json()
             if (d.hbar !== undefined) updateBalance(Number(d.hbar))
           } catch { /* ignore */ }
