@@ -9,8 +9,15 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/ws':  { target: 'ws://localhost:8000',  ws: true, changeOrigin: true },
-      '/api': { target: 'http://localhost:8000', changeOrigin: true },
+      '/ws': { 
+        target: `wss://${process.env.VITE_API_URL}` || 'ws://localhost:8000',
+        ws: true, 
+        changeOrigin: true 
+      },
+      '/api': { 
+        target: `https://${process.env.VITE_API_URL}` || 'http://localhost:8000', 
+        changeOrigin: true 
+      },
     },
   },
   build: {

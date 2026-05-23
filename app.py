@@ -4,9 +4,24 @@ import uuid
 import httpx
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from config import settings
+import os
+
+
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+
 
 app = FastAPI(title="HBAR Coffee Shop")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 TINYBARS_PER_HBAR = 100_000_000
 MIRROR_NODE = "https://testnet.mirrornode.hedera.com/api/v1"
