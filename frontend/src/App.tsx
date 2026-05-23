@@ -208,9 +208,18 @@ export default function App() {
   }, [clearDownloadTimer])
 
   const openWs = useCallback((acctId: string) => {
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws'
-    const socket = new WebSocket(`${proto}://${location.host}/ws`)
-    ws.current = socket
+	let wsUrl: string
+	if (API_URL) {
+	// production — point directly to Railway
+	const proto = API_URL.startsWith('https') ? 'wss' : 'ws'
+	wsUrl = `${proto}://${API_URL.replace(/^https?:\/\//, '')}/ws`
+	} else {
+	// local dev — use relative URL, Vite proxy handles it
+	const proto = location.protocol === 'https:' ? 'wss' : 'ws'
+	wsUrl = `${proto}://${location.host}/ws`
+	}
+
+	const socket = new WebSocket(wsUrl)
     socket.onopen = () => socket.send(JSON.stringify({ account_id: acctId }))
 
     socket.onmessage = async ({ data }: MessageEvent) => {
