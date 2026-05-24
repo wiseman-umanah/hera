@@ -24,7 +24,7 @@ Every payment is a real `TransferTransaction` on Hedera testnet. Nothing is simu
 
 | Layer | Tech |
 |---|---|
-| AI Agent | [Hedera Agent Kit](https://github.com/hedera-dev/hedera-agent-kit) + LangGraph ReAct |
+| AI Agent | [Hedera Agent Kit](https://github.com/hashgraph/hedera-agent-kit-py.git) + LangGraph ReAct |
 | LLM | Groq (`openai/gpt-oss-120b`) |
 | Backend | FastAPI + WebSocket (Python) |
 | Wallet Connect | [@hashgraphonline/hashinal-wc](https://www.npmjs.com/package/@hashgraphonline/hashinal-wc) |
@@ -93,11 +93,8 @@ SHOP_ACCOUNT_ID=0.0.xxxxxx
 # Groq API key — free at console.groq.com
 GROQ_API_KEY=gsk_...
 
-# WalletConnect Project ID — free at cloud.walletconnect.com
-WALLETCONNECT_PROJECT_ID=abc123...
 ```
 
-> **Note:** `SHOP_PRIVATE_KEY` is optional. The shop account only **receives** HBAR — all payments are signed in the user's HashPack wallet, never server-side.
 
 ### 3. Fund your shop account
 
