@@ -172,6 +172,7 @@ export default function App() {
     } catch { /* ignore */ }
 
     if (!projectId) {
+      setError('WalletConnect is not configured. Set VITE_WALLETCONNECT_PROJECT_ID in your frontend environment.')
       clearDownloadTimer()
       setConnecting(false)
       return
@@ -220,7 +221,8 @@ export default function App() {
 	wsUrl = `${proto}://${location.host}/ws`
 	}
 
-	const socket = new WebSocket(wsUrl)
+  const socket = new WebSocket(wsUrl)
+  ws.current = socket
     socket.onopen = () => socket.send(JSON.stringify({ account_id: acctId }))
 
     socket.onmessage = async ({ data }: MessageEvent) => {
@@ -296,7 +298,10 @@ export default function App() {
       }
     }
 
-    socket.onclose = () => addMsg('system', 'Session ended. Refresh to reconnect.')
+    socket.onclose = () => {
+      if (ws.current === socket) ws.current = null
+      addMsg('system', 'Session ended. Refresh to reconnect.')
+    }
   }, [addMsg, updateBalance])
 
   const send = useCallback((text?: string) => {
